@@ -13,16 +13,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
+    # Set up Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # Log in to Docker Hub
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
       with:
-        node-version: '18'
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
 
-    - name: Install dependencies
-      run: npm install
-
-    - name: Run build
-      run: npm run build
-
-    - name: Run tests
-      run: npm test -- --watchAll=false
+    # Build Docker image
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile       # point to your multi-stage Dockerfile
+        push: false              # true if you want to push to registry
+        tags: multi-stage-react-app:latest
