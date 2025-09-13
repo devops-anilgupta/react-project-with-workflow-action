@@ -29,6 +29,6 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./Dockerfile       # point to your multi-stage Dockerfile
+        file: ./Dockerfile      # point to your multi-stage Dockerfile
         push: true              # true if you want to push to registry
-        tags: multi-stage-react-app:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/multi-stage-react-app:latest
