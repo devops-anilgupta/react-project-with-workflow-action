@@ -30,5 +30,5 @@ jobs:
       with:
         context: .
         file: ./Dockerfile       # point to your multi-stage Dockerfile
-        push: false              # true if you want to push to registry
+        push: true              # true if you want to push to registry
         tags: multi-stage-react-app:latest
