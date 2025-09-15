@@ -20,7 +20,7 @@ jobs:
     needs: checkout
     uses: ./.github/workflows/build.yml
     with:
-      image_name: myorg/myapp
+      image_name: dockerhubanilgupta/myapp
       tag: ${{ github.sha }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
