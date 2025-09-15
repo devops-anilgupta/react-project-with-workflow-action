@@ -1,0 +1,52 @@
+name: Security Scans
+on:
+  workflow_call:
+    inputs:
+      image_full:
+        type: string
+        required: true
+    outputs:
+      gitleaks: 
+        value: ${{ jobs.security.outputs.gitleaks }}
+      trivy_image:
+        value: ${{ jobs.security.outputs.trivy_image }}
+      trivy_fs:
+        value: ${{ jobs.security.outputs.trivy_fs }}
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    outputs:
+      gitleaks: ${{ steps.gitleaks.outputs.result }}
+      trivy_image: ${{ steps.trivy-image.outputs.result }}
+      trivy_fs: ${{ steps.trivy-fs.outputs.result }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gitleaks Scan
+        id: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source . --report-format json --report-path gitleaks-report.json
+        continue-on-error: true
+
+      - name: Trivy Image Scan
+        id: trivy-image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ inputs.image_full }}
+          format: table
+          exit-code: 0
+          vuln-type: 'os,library'
+        continue-on-error: true
+
+      - name: Trivy FileSystem Scan
+        id: trivy-fs
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          format: table
+          exit-code: 0
+          vuln-type: 'os,library'
+        continue-on-error: true

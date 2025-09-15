@@ -1,0 +1,57 @@
+# In GitHub Actions, the [needs] keyword is used to set dependencies between jobs.
+# This ensures that a job will only run after the jobs it depends on have completed successfully.
+
+# uses keywords, on, with, and secrets are used to call reusable workflows defined in other YAML files.
+
+# Here is an example of a main pipeline workflow that calls reusable workflows for checkout, build, security scanning, SonarQube analysis, and reporting.
+name: Main CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checkout:
+    uses: ./.github/workflows/checkout.yml
+
+  build:
+    needs: checkout
+    uses: ./.github/workflows/build.yml
+    with:
+      image_name: myorg/myapp
+      tag: ${{ github.sha }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  security:
+    needs: build
+    uses: ./.github/workflows/security.yml
+    with:
+      image_full: ${{ needs.build.outputs.image_full }}
+
+  sonar:
+    needs: build
+    uses: ./.github/workflows/sonar.yml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  reporter:
+    if: always()   # ensures reporter runs even if build/security/sonar fails
+    needs: [build, security, sonar]
+    uses: ./.github/workflows/reporter.yml
+    with:
+      image_full: ${{ needs.build.outputs.image_full }}
+      gitleaks: ${{ needs.security.outputs.gitleaks }}
+      trivy_image: ${{ needs.security.outputs.trivy_image }}
+      trivy_fs: ${{ needs.security.outputs.trivy_fs }}
+      sonar_status: ${{ needs.sonar.outputs.sonar_status }}
+    secrets:
+      MAIL_HOST: ${{ secrets.MAIL_HOST }}
+      MAIL_PORT: ${{ secrets.MAIL_PORT }}
+      MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+      MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+      MAIL_FROM: ${{ secrets.MAIL_FROM }}
+      MAIL_TO: ${{ secrets.MAIL_TO }}

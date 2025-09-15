@@ -1,0 +1,125 @@
+name: Reporter
+on:
+  workflow_call:
+    inputs:
+      image_full: 
+        type: string
+        required: true
+      gitleaks: 
+        type: string
+        required: true
+      trivy_image: 
+        type: string
+        required: true
+      trivy_fs: 
+        type: string
+        required: true
+      sonar_status: 
+        type: string
+        required: true
+    secrets:
+      MAIL_HOST:
+        required: true
+      MAIL_PORT:
+        required: true
+      MAIL_USERNAME:
+        required: true
+      MAIL_PASSWORD:
+        required: true
+      MAIL_FROM:
+        required: true
+      MAIL_TO:
+        required: true
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Markdown Report (for GitHub UI)
+        run: |
+          echo "## CI/CD Execution Report" > report.md
+          echo "" >> report.md
+          echo "**Repository:** ${{ github.repository }}" >> report.md
+          echo "**Commit SHA:** ${{ github.sha }}" >> report.md
+          echo "**Actor:** ${{ github.actor }}" >> report.md
+          echo "" >> report.md
+          echo "### Results" >> report.md
+          echo "- Docker Image: ${{ inputs.image_full }}" >> report.md
+          echo "- Gitleaks: ${{ inputs.gitleaks }}" >> report.md
+          echo "- Trivy Image Scan: ${{ inputs.trivy_image }}" >> report.md
+          echo "- Trivy FileSystem Scan: ${{ inputs.trivy_fs }}" >> report.md
+          echo "- SonarQube Status: ${{ inputs.sonar_status }}" >> report.md
+
+      - name: Generate HTML Report (for Email)
+        run: |
+          get_color() {
+            case "$1" in
+              PASS) echo "green";;
+              FAIL) echo "red";;
+              ERROR|EXCEPTION) echo "orange";;
+              *) echo "black";;
+            esac
+          }
+
+          cat <<EOF > report.html
+          <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <h2>🚀 CI/CD Execution Report</h2>
+            <p><b>Repository:</b> ${{ github.repository }}</p>
+            <p><b>Commit SHA:</b> ${{ github.sha }}</p>
+            <p><b>Actor:</b> ${{ github.actor }}</p>
+            <h3>Results</h3>
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+              <tr>
+                <th>Step</th>
+                <th>Status</th>
+              </tr>
+              <tr>
+                <td>Docker Image</td>
+                <td>${{ inputs.image_full }}</td>
+              </tr>
+              <tr>
+                <td>Gitleaks</td>
+                <td style="color:$(get_color "${{ inputs.gitleaks }}");">
+                  ${{ inputs.gitleaks }}
+                </td>
+              </tr>
+              <tr>
+                <td>Trivy Image Scan</td>
+                <td style="color:$(get_color "${{ inputs.trivy_image }}");">
+                  ${{ inputs.trivy_image }}
+                </td>
+              </tr>
+              <tr>
+                <td>Trivy FileSystem Scan</td>
+                <td style="color:$(get_color "${{ inputs.trivy_fs }}");">
+                  ${{ inputs.trivy_fs }}
+                </td>
+              </tr>
+              <tr>
+                <td>SonarQube</td>
+                <td style="color:$(get_color "${{ inputs.sonar_status }}");">
+                  ${{ inputs.sonar_status }}
+                </td>
+              </tr>
+            </table>
+            <p style="margin-top:20px;">Regards,<br/>Your CI/CD Bot 🤖</p>
+          </body>
+          </html>
+          EOF
+
+      - name: Publish Report to GitHub Summary
+        run: cat report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Send Email Notification (HTML)
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_HOST }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "CI/CD Execution Report - ${{ github.repository }}"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_FROM }}
+          content_type: text/html
+          body_file: report.html

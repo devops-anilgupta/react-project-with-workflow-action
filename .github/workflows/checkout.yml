@@ -1,0 +1,24 @@
+name: Reusable Checkout Workflow
+
+on:
+  workflow_call:
+    outputs:
+      repo_path:
+        description: "Path of the checked-out repository"
+        value: ${{ jobs.checkout.outputs.repo_path }}
+
+jobs:
+  checkout:
+    runs-on: ubuntu-latest
+    outputs:
+      repo_path: ${{ steps.set_output.outputs.repo_path }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set repo path output
+        id: set_output
+        run: |
+          echo "repo_path=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT

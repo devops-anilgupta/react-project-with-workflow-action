@@ -1,0 +1,32 @@
+name: SonarQube Analysis
+on:
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+    outputs:
+      sonar_status:
+        value: ${{ jobs.sonar.outputs.status }}
+
+jobs:
+  sonar:
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.sonar-result.outputs.status }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SonarQube Scan
+        id: sonar
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=my-org_my-app
+            -Dsonar.organization=my-org
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Set Sonar Result
+        id: sonar-result
+        run: echo "status=completed" >> $GITHUB_OUTPUT

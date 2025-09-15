@@ -1,0 +1,31 @@
+name: Send Email
+on:
+  workflow_call:
+    inputs:
+      subject:
+        required: true
+        type: string
+      to:
+        required: true
+        type: string
+    secrets:
+      EMAIL_USERNAME:
+        required: true
+      EMAIL_PASSWORD:
+        required: true
+
+jobs:
+  send-mail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: ${{ inputs.subject }}
+          to: ${{ inputs.to }}
+          from: ${{ secrets.EMAIL_USERNAME }}
+          body: "Pipeline execution completed. See GitHub summary for details."
